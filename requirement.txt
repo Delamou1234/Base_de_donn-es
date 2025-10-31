@@ -4,3 +4,4 @@ mysql.connector
 datetime
 numpy
 pandas
+mysql-connector-python
