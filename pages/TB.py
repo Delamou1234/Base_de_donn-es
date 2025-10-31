@@ -51,7 +51,7 @@ with tab2:
         'Mois': ['Jan', 'Fév', 'Mar', 'Avr', 'Mai'],
         'Emprunts': [20, 25, 30, 28, 35]
     })
-    st.line_chart(chart_data.set_index('Mois'))
+    st.bar_chart(chart_data.set_index('Mois'))
 
 # Sidebar
 st.sidebar.title("Navigation")
