@@ -44,10 +44,10 @@ with tab2:
     })
     st.bar_chart(chart_data.set_index('Mois'))
 with tab3:
-    st.button("➕ Nouveau Livre", help="Ajouter un nouveau membre", use_container_width=True)
-    st.button("👥 Afficher les Livres", help="Voir la liste des membres", use_container_width=True)
-    st.button("✏️ Mettre à jour un Livres", help="Modifier les informations d'un membre", use_container_width=True)
-    st.button("🗑️ Supprimer un Livres", help="Retirer un membre de la bibliothèque", use_container_width=True)
+    st.button("➕ Nouveau Livre", help="Ajouter un nouveau membre", use_container_width=True,key="new_book")
+    st.button("👥 Afficher les Livres", help="Voir la liste des membres", use_container_width=True,key="afficher1")
+    st.button("✏️ Mettre à jour un Livres", help="Modifier les informations d'un membre", use_container_width=True,key="update_book")
+    st.button("🗑️ Supprimer un Livres", help="Retirer un membre de la bibliothèque", use_container_width=True,key="delete")
 with tab4:
     st.button("Nouveau membre",help="Ajouter un nouveau membre")
     st.button("Afficher les membres",help="Voir la liste des membres")
