@@ -13,9 +13,6 @@ col1, col2 = st.columns([2,1])
 with col1:
     st.title("📚 BIBLIOTHEQUE LE BONLECTEUR")
     st.badge("DELAMOU Samaké")
-with col2:
-    st.image("https://cdn-icons-png.flaticon.com/512/2702/2702134.png", width=100)
-
 # Métriques principales
 col1, col2, col3, col4 = st.columns(4)
 with col1:
@@ -33,17 +30,12 @@ tab1, tab2,tab3,tab4,tab5 = st.tabs(["Membres","Livres","Emplacements","Auteurs"
 with tab1:
     col1, col2 = st.columns(2)
     with col1:
-        st.subheader("Dernières activités")
-        st.info("📋 Liste des 5 dernières actions")
-        activities = """
-        - Jean Dupont a emprunté "Le Petit Prince"
-        - Marie Martin a rendu "1984"
-        - Nouveau membre: Sophie Dubois
-        - Paul Henri a prolongé son emprunt
-        - Mise à jour: Lucas Bernard
-        """
-        st.markdown(activities)
-
+      st.button("➕ Nouveau Livre", help="Ajouter un nouveau membre", use_container_width=True)
+      st.button("👥 Afficher les Livres", help="Voir la liste des membres", use_container_width=True)
+      st.button("✏️ Mettre à jour un Livres", help="Modifier les informations d'un membre", use_container_width=True)
+      st.button("🗑️ Supprimer un Livres", help="Retirer un membre de la bibliothèque", use_container_width=True)
+    with col2:
+      st.info("Liste des Membres")  
 with tab2:
     st.subheader("Statistiques des emprunts")
     chart_data = pd.DataFrame({
