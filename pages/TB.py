@@ -32,14 +32,8 @@ tab1, tab2 = st.tabs(["Gestion des Membres", "Statistiques"])
 
 with tab1:
     col1, col2 = st.columns(2)
-    with col1:
-        st.subheader("Actions Membres")
-        st.button("➕ Nouveau membre", help="Ajouter un nouveau membre", use_container_width=True)
-        st.button("👥 Afficher les membres", help="Voir la liste des membres", use_container_width=True)
-        st.button("✏️ Mettre à jour un membre", help="Modifier les informations d'un membre", use_container_width=True)
-        st.button("🗑️ Supprimer un membre", help="Retirer un membre de la bibliothèque", use_container_width=True)
     
-    with col2:
+    with col1:
         st.subheader("Dernières activités")
         st.info("📋 Liste des 5 dernières actions")
         activities = """

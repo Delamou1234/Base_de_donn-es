@@ -34,17 +34,25 @@ if "members" not in st.session_state:
     st.session_state.members = []  # stockage temporaire en session
 
 # les boutons
-col1, col2, col3, col4 = st.columns(4)
-with col1:
-    if st.button("➕ Nouveau membre", help="Ajouter un nouveau membre"):
-        st.session_state.show_add_member_form = True
-with col2:
-    st.button("Afficher les membres", help="Voir la liste des membres")
-with col3:
-    st.button("Mettre à jour un membre", help="Modifier les informations d'un membre")   
-with col4:
-    st.button("Supprimer un membre", help="Retirer un membre de la bibliothèque")
-
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader("Actions Membres")
+        st.button("➕ Nouveau membre", help="Ajouter un nouveau membre", use_container_width=True)
+        st.button("👥 Afficher les membres", help="Voir la liste des membres", use_container_width=True)
+        st.button("✏️ Mettre à jour un membre", help="Modifier les informations d'un membre", use_container_width=True)
+        st.button("🗑️ Supprimer un membre", help="Retirer un membre de la bibliothèque", use_container_width=True)
+    
+    with col2:
+        st.subheader("Dernières activités")
+        st.info("📋 Liste des 5 dernières actions")
+        activities = """
+        - Jean Dupont a emprunté "Le Petit Prince"
+        - Marie Martin a rendu "1984"
+        - Nouveau membre: Sophie Dubois
+        - Paul Henri a prolongé son emprunt
+        - Mise à jour: Lucas Bernard
+        """
+        st.markdown(activities)
 # Formulaire d'ajout : s'affiche seulement quand on a cliqué sur "Nouveau membre"
 if st.session_state.show_add_member_form:
     st.markdown("### ➕ Enregistrer un nouveau membre")
