@@ -160,7 +160,8 @@ with tab4:
     st.button("Mettre à jour un membre",help="Modifier les informations d'un membre")   
     st.button("Supprimer un membre",help="Retirer un membre de la bibliothèque")
 with tab5:
-   
+    st.subheader("Statistiques avancées")
+    st.write("Ici, vous pouvez afficher des statistiques détaillées sur les emprunts, les retards, et plus encore.")
 # Sidebar
 st.sidebar.title("Navigation")
 st.sidebar.info("Bibliothèque de gestion de la bibliothèque")
