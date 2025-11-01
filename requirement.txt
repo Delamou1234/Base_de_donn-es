@@ -1,11 +1,7 @@
-streamlit
-mysql.connector
-mysql.connector 
-datetime
-numpy
-pandas
 mysql-connector-python
+pandas
+numpy
 pillow
 sounddevice
 soundfile
-numpy
+streamlit
