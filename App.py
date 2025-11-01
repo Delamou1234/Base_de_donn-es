@@ -3,10 +3,6 @@ import pandas as pd
 import datetime
 import io
 from PIL import Image
-import sounddevice as sd
-import soundfile as sf
-import numpy as np
-import time
 
 # Configuration de la page
 st.set_page_config(
