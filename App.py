@@ -19,7 +19,7 @@ if 'user' not in st.session_state:
 def _logout():
     st.session_state.logged_in = False
     st.session_state.user = ""
-    st.experimental_rerun()
+    # st.experimental_rerun()  # <-- supprimé, Streamlit rerun automatique suffit
 
 # Si non connecté, afficher le formulaire de connexion et stopper l'exécution du reste
 if not st.session_state.logged_in:
@@ -34,7 +34,7 @@ if not st.session_state.logged_in:
         if username == "admin" and password == "admin123":
             st.session_state.logged_in = True
             st.session_state.user = username
-            st.experimental_rerun()
+            # st.experimental_rerun()  # <-- supprimé
         else:
             st.error("Identifiants invalides. Utilisez admin / admin123.")
     st.stop()
