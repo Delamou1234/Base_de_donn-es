@@ -29,14 +29,19 @@ if not st.session_state.logged_in:
         password = st.text_input("Mot de passe", type="password")
         submit = st.form_submit_button("Se connecter")
     if submit:
-        # Exemple d'auth simple : identifiants par défaut admin/admin123
-        # Remplacez par votre logique (base de données, hash, etc.) si besoin
+        # Auth simple :
+        # - admin/admin123 -> rôle admin
+        # - tout autre nom avec mot de passe member123 -> rôle membre (username utilisé comme identifiant)
         if username == "admin" and password == "admin123":
             st.session_state.logged_in = True
+            st.session_state.user = "admin"
+            st.session_state.role = "admin"
+        elif username and password == "member123":
+            st.session_state.logged_in = True
             st.session_state.user = username
-            # st.experimental_rerun()  # <-- supprimé
+            st.session_state.role = "member"
         else:
-            st.error("Identifiants invalides. Utilisez admin / admin123.")
+            st.error("Identifiants invalides. Admin: admin/admin123  — Membres: anyname / member123")
     st.stop()
 # --- Fin ajout : authentification simple ---
 
@@ -86,8 +91,14 @@ for item in ['book', 'location', 'author']:
     if f'show_edit_{item}_form' not in st.session_state:
         st.session_state[f'show_edit_{item}_form'] = False
 
-# Section principale
-tab1, tab2,tab3,tab4,tab5 = st.tabs(["Membres","Livres","Emplacements","Auteurs" ,"Statistiques"])
+# --- Début ajout : initialisation messagerie ---
+if 'chat_messages' not in st.session_state:
+    # chaque message: {"sender": str, "role": "member"|"admin", "type":"text"|"audio", "content": str or bytes, "ts": str}
+    st.session_state.chat_messages = []
+# --- Fin ajout : initialisation messagerie ---
+
+# Section principale (ajout de l'onglet "Messagerie")
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["Membres","Livres","Emplacements","Auteurs","Statistiques","Messagerie"])
 
 with tab1:
     col1, col2 = st.columns(2)
@@ -472,6 +483,83 @@ with tab4:  # Auteurs
 with tab5:
     st.subheader("Statistiques avancées")
     st.write("Ici, vous pouvez afficher des statistiques détaillées sur les emprunts, les retards, et plus encore.")
+
+# --- Début ajout : interface Messagerie ---
+with tab6:
+    st.subheader("Messagerie (Membres ↔ Admin)")
+    # affichage des messages
+    if st.session_state.chat_messages:
+        for i, msg in enumerate(st.session_state.chat_messages):
+            ts = msg.get("ts", "")
+            sender = msg["sender"]
+            role = msg["role"]
+            if msg["type"] == "text":
+                if role == "admin":
+                    st.markdown(f"**Admin — {ts}**: {msg['content']}")
+                else:
+                    st.markdown(f"**{sender} — {ts}**: {msg['content']}")
+            else:  # audio
+                label = f"{'Admin' if role=='admin' else sender} — {ts} (audio)"
+                st.write(label)
+                st.audio(msg["content"])  # bytes ou URL acceptable
+
+    else:
+        st.info("Aucun message pour le moment.")
+
+    st.divider()
+    # envoi de message (membre ou admin selon la session)
+    st.write("Envoyer un message")
+    col_a, col_b = st.columns([3,1])
+    with col_a:
+        text = st.text_input("Message texte", key="chat_text_input")
+        audio_file = st.file_uploader("Ou envoyer un fichier audio (wav/mp3/ogg)", type=['wav','mp3','ogg'], accept_multiple_files=False, key="chat_audio_upl")
+    with col_b:
+        if st.button("Envoyer", use_container_width=True):
+            if text:
+                st.session_state.chat_messages.append({
+                    "sender": st.session_state.user or "anonyme",
+                    "role": st.session_state.get("role","member"),
+                    "type": "text",
+                    "content": text,
+                    "ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                })
+                # clear input
+                st.session_state.chat_text_input = ""
+                st.success("Message envoyé.")
+            elif audio_file is not None:
+                audio_bytes = audio_file.read()
+                st.session_state.chat_messages.append({
+                    "sender": st.session_state.user or "anonyme",
+                    "role": st.session_state.get("role","member"),
+                    "type": "audio",
+                    "content": audio_bytes,
+                    "ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                })
+                st.session_state.chat_audio_upl = None
+                st.success("Audio envoyé.")
+            else:
+                st.error("Renseignez un texte ou joignez un audio avant d'envoyer.")
+
+    # Si Admin, possibilité de répondre en ciblant un message (optionnel simple)
+    if st.session_state.get("role") == "admin":
+        st.divider()
+        st.write("Répondre / modérer")
+        if st.session_state.chat_messages:
+            selection = st.selectbox("Choisir message à citer", options=[f"{i+1}. {m['sender']} - {m['ts']}" for i,m in enumerate(st.session_state.chat_messages)], key="admin_sel")
+            reply = st.text_input("Réponse de l'admin", key="admin_reply")
+            if st.button("Envoyer réponse (Admin)"):
+                idx = int(selection.split(".")[0]) - 1
+                target = st.session_state.chat_messages[idx]
+                st.session_state.chat_messages.append({
+                    "sender": "admin",
+                    "role": "admin",
+                    "type": "text",
+                    "content": f"@{target['sender']}: {reply}",
+                    "ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                })
+                st.session_state.admin_reply = ""
+                st.success("Réponse envoyée.")
+# --- Fin ajout : interface Messagerie ---
 # Sidebar
 st.sidebar.title("Navigation")
 
