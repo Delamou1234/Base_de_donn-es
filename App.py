@@ -1,6 +1,12 @@
 import streamlit as st
 import pandas as pd
 import datetime
+import io
+from PIL import Image
+import sounddevice as sd
+import soundfile as sf
+import numpy as np
+import time
 
 # Configuration de la page
 st.set_page_config(
@@ -385,6 +391,36 @@ with tab2:  # Livres
                         st.write(f"Quantité: {book['quantite']}")
             else:
                 st.info("Aucun livre enregistré pour le moment.")
+            # Ajouter après l'affichage de la liste des livres
+            if st.session_state.role == "member" and st.session_state.books:
+                st.divider()
+                st.subheader("🎯 Réserver un livre")
+                with st.form("reservation_form"):
+                    livre = st.selectbox("Choisir un livre", 
+                        [b['titre'] for b in st.session_state.books if b['quantite'] > 0])
+                    date_debut = st.date_input("Date de début", 
+                        min_value=datetime.date.today(),
+                        max_value=datetime.date.today() + datetime.timedelta(days=30))
+                    duree = st.number_input("Durée (jours)", min_value=1, max_value=30, value=7)
+                    submit_res = st.form_submit_button("Réserver")
+                    
+                    if submit_res:
+                        book = next((b for b in st.session_state.books if b['titre'] == livre), None)
+                        if book and book['quantite'] > 0:
+                            reservation = {
+                                "membre": st.session_state.user,
+                                "livre": livre,
+                                "date_debut": str(date_debut),
+                                "duree": duree,
+                                "statut": "En attente",
+                                "date_reservation": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                            }
+                            st.session_state.reservations.append(reservation)
+                            book['quantite'] -= 1
+                            st.success("Réservation effectuée avec succès!")
+                        else:
+                            st.error("Ce livre n'est plus disponible.")
+
 with tab3:  # Emplacements
     col1, col2 = st.columns(2)
     with col1:
@@ -557,84 +593,119 @@ with tab5:
 # --- Début ajout : interface Messagerie ---
 with tab6:
     st.subheader("Messagerie (Membres ↔ Admin)")
-    # affichage des messages
+    
+    # Affichage des messages
     if st.session_state.chat_messages:
-        for i, msg in enumerate(st.session_state.chat_messages):
+        for msg in st.session_state.chat_messages:
             ts = msg.get("ts", "")
             sender = msg["sender"]
             role = msg["role"]
-            if msg["type"] == "text":
-                if role == "admin":
-                    st.markdown(f"**Admin — {ts}**: {msg['content']}")
-                else:
-                    st.markdown(f"**{sender} — {ts}**: {msg['content']}")
-            else:  # audio
-                label = f"{'Admin' if role=='admin' else sender} — {ts} (audio)"
-                st.write(label)
-                st.audio(msg["content"])  # bytes ou URL acceptable
-
+            
+            with st.container():
+                st.markdown(f"**{sender} — {ts}**")
+                
+                if msg["type"] == "text":
+                    st.markdown(f"> {msg['content']}")
+                elif msg["type"] == "audio":
+                    st.audio(msg["content"])
+                elif msg["type"] == "image":
+                    st.image(msg["content"], caption=f"Image de {sender}")
     else:
         st.info("Aucun message pour le moment.")
 
     st.divider()
-    # envoi de message (membre ou admin selon la session)
+    # Interface d'envoi
     st.write("Envoyer un message")
-    col_a, col_b = st.columns([3,1])
-    with col_a:
-        text = st.text_input("Message texte", key="chat_text_input")
-        audio_file = st.file_uploader("Ou envoyer un fichier audio (wav/mp3/ogg)", type=['wav','mp3','ogg'], accept_multiple_files=False, key="chat_audio_upl")
-    with col_b:
-        if st.button("Envoyer", use_container_width=True):
-            if text:
+    
+    tab_text, tab_audio, tab_image = st.tabs(["Texte", "Audio", "Image"])
+    
+    with tab_text:
+        with st.form("text_message_form"):
+            text = st.text_area("Message")
+            submit_text = st.form_submit_button("Envoyer texte")
+            if submit_text and text:
                 st.session_state.chat_messages.append({
-                    "sender": st.session_state.user or "anonyme",
+                    "sender": st.session_state.user,
                     "role": st.session_state.get("role","member"),
                     "type": "text",
                     "content": text,
                     "ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 })
-                # clear input — mise à jour protégée
-                if "chat_text_input" in st.session_state:
-                    st.session_state["chat_text_input"] = ""
-                st.success("Message envoyé.")
-            elif audio_file is not None:
-                audio_bytes = audio_file.read()
+                st.success("Message envoyé")
+
+    with tab_audio:
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("🎤 Démarrer Enregistrement"):
+                st.session_state.recording = True
+                with st.spinner("Enregistrement en cours..."):
+                    audio_data, sr = record_audio(5)  # 5 secondes d'enregistrement
+                    st.session_state.audio_data = (audio_data, sr)
+                st.session_state.recording = False
+                st.success("Enregistrement terminé!")
+                
+        with col2:
+            if st.session_state.audio_data is not None:
+                if st.button("📤 Envoyer l'audio"):
+                    # Convertir l'audio en bytes pour le stockage
+                    audio_buffer = io.BytesIO()
+                    sf.write(audio_buffer, 
+                            st.session_state.audio_data[0], 
+                            st.session_state.audio_data[1], 
+                            format='WAV')
+                    
+                    st.session_state.chat_messages.append({
+                        "sender": st.session_state.user,
+                        "role": st.session_state.get("role","member"),
+                        "type": "audio",
+                        "content": audio_buffer.getvalue(),
+                        "ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    })
+                    st.session_state.audio_data = None
+                    st.success("Audio envoyé!")
+
+    with tab_image:
+        uploaded_file = st.file_uploader("Choisir une image", type=['png', 'jpg', 'jpeg'])
+        if uploaded_file is not None:
+            image = Image.open(uploaded_file)
+            st.image(image, caption='Aperçu de l\'image')
+            if st.button("📤 Envoyer l'image"):
+                # Convertir l'image en bytes pour le stockage
+                img_buffer = io.BytesIO()
+                image.save(img_buffer, format="PNG")
+                
                 st.session_state.chat_messages.append({
-                    "sender": st.session_state.user or "anonyme",
+                    "sender": st.session_state.user,
                     "role": st.session_state.get("role","member"),
-                    "type": "audio",
-                    "content": audio_bytes,
+                    "type": "image",
+                    "content": img_buffer.getvalue(),
                     "ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 })
-                # clear uploader key si présent
-                if "chat_audio_upl" in st.session_state:
-                    st.session_state["chat_audio_upl"] = None
-                st.success("Audio envoyé.")
-            else:
-                st.error("Renseignez un texte ou joignez un audio avant d'envoyer.")
+                st.success("Image envoyée!")
 
-    # Si Admin, possibilité de répondre en ciblant un message (optionnel simple)
+# Ajouter dans la sidebar pour l'admin
+with st.sidebar:
     if st.session_state.get("role") == "admin":
         st.divider()
-        st.write("Répondre / modérer")
-        if st.session_state.chat_messages:
-            selection = st.selectbox("Choisir message à citer", options=[f"{i+1}. {m['sender']} - {m['ts']}" for i,m in enumerate(st.session_state.chat_messages)], key="admin_sel")
-            reply = st.text_input("Réponse de l'admin", key="admin_reply")
-            if st.button("Envoyer réponse (Admin)"):
-                idx = int(selection.split(".")[0]) - 1
-                target = st.session_state.chat_messages[idx]
-                st.session_state.chat_messages.append({
-                    "sender": "admin",
-                    "role": "admin",
-                    "type": "text",
-                    "content": f"@{target['sender']}: {reply}",
-                    "ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                })
-                # clear admin reply si présent
-                if "admin_reply" in st.session_state:
-                    st.session_state["admin_reply"] = ""
-                st.success("Réponse envoyée.")
-# --- Fin ajout : interface Messagerie ---
+        st.subheader("Réservations en attente")
+        pending = [r for r in st.session_state.reservations if r['statut'] == "En attente"]
+        if pending:
+            for res in pending:
+                with st.expander(f"📚 {res['livre']} - {res['membre']}"):
+                    st.write(f"Date: {res['date_debut']}")
+                    st.write(f"Durée: {res['duree']} jours")
+                    if st.button("✅ Approuver", key=f"apr_{res['date_reservation']}"):
+                        res['statut'] = "Approuvé"
+                        st.success("Réservation approuvée!")
+                    if st.button("❌ Refuser", key=f"ref_{res['date_reservation']}"):
+                        res['statut'] = "Refusé"
+                        # Remettre le livre en stock
+                        book = next((b for b in st.session_state.books if b['titre'] == res['livre']), None)
+                        if book:
+                            book['quantite'] += 1
+                        st.error("Réservation refusée!")
+        else:
+            st.info("Aucune réservation en attente")
 # Sidebar
 st.sidebar.title("Navigation")
 
