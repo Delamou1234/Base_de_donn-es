@@ -3,6 +3,80 @@ import pandas as pd
 import datetime
 import io
 from PIL import Image
+import os
+import hashlib
+import mysql.connector
+from mysql.connector import Error
+
+# --- Début ajout : configuration et fonctions MySQL (insérer ici, avant l'auth) ---
+DB_HOST = os.getenv("DB_HOST", "localhost")
+DB_USER = os.getenv("DB_USER", "root")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "delamou")
+DB_NAME = os.getenv("DB_NAME", "gestion_bibliotheque")
+
+def get_db_conn():
+    try:
+        return mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME,
+            autocommit=True
+        )
+    except Error:
+        return None
+
+def hash_password(password: str) -> str:
+    return hashlib.sha256(password.encode("utf-8")).hexdigest()
+
+def create_user_db(username: str, password: str, email: str, role: str="member"):
+    pw_hash = hash_password(password)
+    conn = get_db_conn()
+    if not conn:
+        return False, "Impossible de se connecter à la base de données."
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO users (username, password_hash, email, role) VALUES (%s,%s,%s,%s)",
+            (username, pw_hash, email, role)
+        )
+        cur.close()
+        conn.close()
+        return True, None
+    except Error as e:
+        return False, str(e)
+
+def verify_user_db(username: str, password: str):
+    pw_hash = hash_password(password)
+    conn = get_db_conn()
+    if not conn:
+        return None
+    try:
+        cur = conn.cursor(dictionary=True)
+        cur.execute("SELECT id, username, role FROM users WHERE username=%s AND password_hash=%s", (username, pw_hash))
+        user = cur.fetchone()
+        cur.close()
+        conn.close()
+        return user
+    except Error:
+        return None
+
+def change_password_db(username: str, current_password: str, new_password: str):
+    user = verify_user_db(username, current_password)
+    if not user:
+        return False, "Nom d'utilisateur ou mot de passe incorrect."
+    conn = get_db_conn()
+    if not conn:
+        return False, "Impossible de se connecter à la base de données."
+    try:
+        cur = conn.cursor()
+        cur.execute("UPDATE users SET password_hash=%s WHERE id=%s", (hash_password(new_password), user['id']))
+        cur.close()
+        conn.close()
+        return True, None
+    except Error as e:
+        return False, str(e)
+# --- Fin ajout : configuration et fonctions MySQL ---
 
 # Configuration de la page
 st.set_page_config(
@@ -712,3 +786,90 @@ with st.sidebar:
 # Footer
 st.divider()
 st.caption("© 2025 - Application de gestion complète de bibliothèque")
+
+# --- Début ajout : fonctions DB et auth MySQL ---
+DB_HOST = os.getenv("DB_HOST", "127.0.0.1")
+DB_USER = os.getenv("DB_USER", "root")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "")
+DB_NAME = os.getenv("DB_NAME", "gestion_bibliotheque")
+
+def get_db_conn():
+    return mysql.connector.connect(
+        host=DB_HOST,
+        user=DB_USER,
+        password=DB_PASSWORD,
+        database=DB_NAME,
+        autocommit=True
+    )
+
+def hash_password(password: str) -> str:
+    return hashlib.sha256(password.encode("utf-8")).hexdigest()
+
+def create_user(username: str, password: str, email: str, role: str="member"):
+    pw_hash = hash_password(password)
+    try:
+        conn = get_db_conn()
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO users (username, password_hash, email, role) VALUES (%s,%s,%s,%s)",
+            (username, pw_hash, email, role)
+        )
+        cur.close()
+        conn.close()
+        return True
+    except Error as e:
+        return False
+
+def verify_user(username: str, password: str):
+    pw_hash = hash_password(password)
+    try:
+        conn = get_db_conn()
+        cur = conn.cursor(dictionary=True)
+        cur.execute("SELECT id, username, role FROM users WHERE username=%s AND password_hash=%s", (username, pw_hash))
+        user = cur.fetchone()
+        cur.close()
+        conn.close()
+        return user
+    except Error:
+        return None
+
+def get_user_by_username(username: str):
+    try:
+        conn = get_db_conn()
+        cur = conn.cursor(dictionary=True)
+        cur.execute("SELECT id, username, role FROM users WHERE username=%s", (username,))
+        user = cur.fetchone()
+        cur.close()
+        conn.close()
+        return user
+    except Error:
+        return None
+
+def insert_message(sender_user_id, recipient_user_id, texte, image_bytes, audio_bytes):
+    try:
+        conn = get_db_conn()
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO messages (sender_user_id, recipient_user_id, texte, image, audio) VALUES (%s,%s,%s,%s,%s)",
+            (sender_user_id, recipient_user_id, texte, image_bytes, audio_bytes)
+        )
+        cur.close()
+        conn.close()
+        return True
+    except Error:
+        return False
+
+def fetch_messages(limit=200):
+    try:
+        conn = get_db_conn()
+        cur = conn.cursor(dictionary=True)
+        cur.execute("SELECT m.id,m.sender_user_id,m.recipient_user_id,m.texte,m.image,m.audio,m.created_at,u.username "
+                    "FROM messages m JOIN users u ON m.sender_user_id=u.id "
+                    "ORDER BY m.created_at DESC LIMIT %s", (limit,))
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+        return rows[::-1]  # oldest first
+    except Error:
+        return []
+# --- Fin ajout : fonctions DB et auth MySQL ---
