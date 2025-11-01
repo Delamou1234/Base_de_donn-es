@@ -23,25 +23,95 @@ def _logout():
 
 # Si non connecté, afficher le formulaire de connexion et stopper l'exécution du reste
 if not st.session_state.logged_in:
-    st.title("Connexion à la Gestion Bibliothèque")
-    with st.form("login_form"):
-        username = st.text_input("Nom d'utilisateur")
-        password = st.text_input("Mot de passe", type="password")
-        submit = st.form_submit_button("Se connecter")
-    if submit:
-        # Auth simple :
-        # - admin/admin123 -> rôle admin
-        # - tout autre nom avec mot de passe member123 -> rôle membre (username utilisé comme identifiant)
-        if username == "admin" and password == "admin123":
-            st.session_state.logged_in = True
-            st.session_state.user = "admin"
-            st.session_state.role = "admin"
-        elif username and password == "member123":
-            st.session_state.logged_in = True
-            st.session_state.user = username
-            st.session_state.role = "member"
-        else:
-            st.error("Identifiants invalides. Admin: admin/admin123  — Membres: anyname / member123")
+    st.title("Gestion Bibliothèque")
+    
+    # Création de 3 colonnes
+    col_left, col_mid, col_right = st.columns(3)
+    
+    # Colonne de gauche - Image ou texte de bienvenue
+    with col_left:
+        st.image("https://img.icons8.com/clouds/200/000000/library.png", width=200)
+        st.markdown("### Bienvenue à la bibliothèque")
+    
+    # Colonne du milieu - Informations
+    with col_mid:
+        st.info("""
+        📚 **Le BonLecteur**
+        
+        Connectez-vous ou créez un compte pour:
+        - Emprunter des livres
+        - Suivre vos lectures
+        - Communiquer avec l'admin
+        - Et plus encore!
+        """)
+    
+    # Colonne de droite - Formulaires
+    with col_right:
+        # Tabs pour switcher entre connexion, création et reset password
+        login_tab, signup_tab, reset_tab = st.tabs(["Connexion", "Nouveau compte", "Mot de passe"])
+        
+        # Onglet Connexion
+        with login_tab:
+            with st.form("login_form"):
+                username = st.text_input("Nom d'utilisateur")
+                password = st.text_input("Mot de passe", type="password")
+                submit = st.form_submit_button("Se connecter")
+                
+                if submit:
+                    if username == "admin" and password == "admin123":
+                        st.session_state.logged_in = True
+                        st.session_state.user = "admin"
+                        st.session_state.role = "admin"
+                    elif username and password == "member123":
+                        st.session_state.logged_in = True
+                        st.session_state.user = username
+                        st.session_state.role = "member"
+                    else:
+                        st.error("Identifiants invalides")
+        
+        # Onglet Création de compte
+        with signup_tab:
+            with st.form("signup_form"):
+                new_username = st.text_input("Choisir un nom d'utilisateur")
+                new_password = st.text_input("Choisir un mot de passe", type="password")
+                confirm_password = st.text_input("Confirmer le mot de passe", type="password")
+                email = st.text_input("Email")
+                submit_signup = st.form_submit_button("Créer mon compte")
+                
+                if submit_signup:
+                    if not new_username or not new_password:
+                        st.error("Tous les champs sont obligatoires")
+                    elif new_password != confirm_password:
+                        st.error("Les mots de passe ne correspondent pas")
+                    else:
+                        # Ici vous pouvez ajouter la logique pour sauvegarder le nouveau compte
+                        # Pour l'exemple, on utilise une liste en session
+                        if 'users' not in st.session_state:
+                            st.session_state.users = []
+                        
+                        st.session_state.users.append({
+                            "username": new_username,
+                            "password": new_password,  # En production, hasher le mot de passe
+                            "email": email,
+                            "role": "member"
+                        })
+                        st.success("Compte créé avec succès! Vous pouvez maintenant vous connecter.")
+        
+        # Onglet Reset password
+        with reset_tab:
+            with st.form("reset_form"):
+                reset_username = st.text_input("Nom d'utilisateur")
+                reset_email = st.text_input("Email de confirmation")
+                submit_reset = st.form_submit_button("Réinitialiser mon mot de passe")
+                
+                if submit_reset:
+                    if not reset_username or not reset_email:
+                        st.error("Veuillez remplir tous les champs")
+                    else:
+                        # Ici vous pouvez ajouter la logique pour réinitialiser le mot de passe
+                        # Par exemple, envoyer un email avec un lien de réinitialisation
+                        st.success("Si le compte existe, un email de réinitialisation vous sera envoyé.")
+    
     st.stop()
 # --- Fin ajout : authentification simple ---
 
