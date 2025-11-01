@@ -160,6 +160,15 @@ if 'locations' not in st.session_state:
 if 'authors' not in st.session_state:
     st.session_state.authors = []
 
+# --- Début ajout : initialisation réservations et users ---
+if 'reservations' not in st.session_state:
+    st.session_state.reservations = []  # liste des réservations
+if 'users' not in st.session_state:
+    st.session_state.users = []         # comptes créés en session (ex: signup)
+if 'role' not in st.session_state:
+    st.session_state.role = None        # "admin" ou "member"
+# --- Fin ajout : initialisation réservations et users ---
+
 # Pour chaque section, ajouter ces états
 for item in ['book', 'location', 'author']:
     if f'show_add_{item}_form' not in st.session_state:
