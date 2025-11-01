@@ -523,8 +523,9 @@ with tab6:
                     "content": text,
                     "ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 })
-                # clear input
-                st.session_state.chat_text_input = ""
+                # clear input — mise à jour protégée
+                if "chat_text_input" in st.session_state:
+                    st.session_state["chat_text_input"] = ""
                 st.success("Message envoyé.")
             elif audio_file is not None:
                 audio_bytes = audio_file.read()
@@ -535,7 +536,9 @@ with tab6:
                     "content": audio_bytes,
                     "ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 })
-                st.session_state.chat_audio_upl = None
+                # clear uploader key si présent
+                if "chat_audio_upl" in st.session_state:
+                    st.session_state["chat_audio_upl"] = None
                 st.success("Audio envoyé.")
             else:
                 st.error("Renseignez un texte ou joignez un audio avant d'envoyer.")
@@ -557,7 +560,9 @@ with tab6:
                     "content": f"@{target['sender']}: {reply}",
                     "ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 })
-                st.session_state.admin_reply = ""
+                # clear admin reply si présent
+                if "admin_reply" in st.session_state:
+                    st.session_state["admin_reply"] = ""
                 st.success("Réponse envoyée.")
 # --- Fin ajout : interface Messagerie ---
 # Sidebar
