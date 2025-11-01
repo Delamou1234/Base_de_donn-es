@@ -634,35 +634,19 @@ with tab6:
                 st.success("Message envoyé")
 
     with tab_audio:
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("🎤 Démarrer Enregistrement"):
-                st.session_state.recording = True
-                with st.spinner("Enregistrement en cours..."):
-                    audio_data, sr = record_audio(5)  # 5 secondes d'enregistrement
-                    st.session_state.audio_data = (audio_data, sr)
-                st.session_state.recording = False
-                st.success("Enregistrement terminé!")
-                
-        with col2:
-            if st.session_state.audio_data is not None:
-                if st.button("📤 Envoyer l'audio"):
-                    # Convertir l'audio en bytes pour le stockage
-                    audio_buffer = io.BytesIO()
-                    sf.write(audio_buffer, 
-                            st.session_state.audio_data[0], 
-                            st.session_state.audio_data[1], 
-                            format='WAV')
-                    
-                    st.session_state.chat_messages.append({
-                        "sender": st.session_state.user,
-                        "role": st.session_state.get("role","member"),
-                        "type": "audio",
-                        "content": audio_buffer.getvalue(),
-                        "ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    })
-                    st.session_state.audio_data = None
-                    st.success("Audio envoyé!")
+        audio_file = st.file_uploader("Choisir un fichier audio", type=['wav', 'mp3', 'ogg'])
+        if audio_file is not None:
+            st.audio(audio_file)
+            if st.button("📤 Envoyer l'audio"):
+                audio_bytes = audio_file.read()
+                st.session_state.chat_messages.append({
+                    "sender": st.session_state.user,
+                    "role": st.session_state.get("role","member"),
+                    "type": "audio",
+                    "content": audio_bytes,
+                    "ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                })
+                st.success("Audio envoyé!")
 
     with tab_image:
         uploaded_file = st.file_uploader("Choisir une image", type=['png', 'jpg', 'jpeg'])
