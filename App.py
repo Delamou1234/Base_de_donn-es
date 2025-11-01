@@ -9,6 +9,44 @@ st.set_page_config(
     layout="wide"
 )
 
+# --- Début ajout : authentification simple ---
+# États de session pour l'authentification
+if 'logged_in' not in st.session_state:
+    st.session_state.logged_in = False
+if 'user' not in st.session_state:
+    st.session_state.user = ""
+
+def _logout():
+    st.session_state.logged_in = False
+    st.session_state.user = ""
+    st.experimental_rerun()
+
+# Si non connecté, afficher le formulaire de connexion et stopper l'exécution du reste
+if not st.session_state.logged_in:
+    st.title("Connexion à la Gestion Bibliothèque")
+    with st.form("login_form"):
+        username = st.text_input("Nom d'utilisateur")
+        password = st.text_input("Mot de passe", type="password")
+        submit = st.form_submit_button("Se connecter")
+    if submit:
+        # Exemple d'auth simple : identifiants par défaut admin/admin123
+        # Remplacez par votre logique (base de données, hash, etc.) si besoin
+        if username == "admin" and password == "admin123":
+            st.session_state.logged_in = True
+            st.session_state.user = username
+            st.experimental_rerun()
+        else:
+            st.error("Identifiants invalides. Utilisez admin / admin123.")
+    st.stop()
+# --- Fin ajout : authentification simple ---
+
+# Sidebar : bouton déconnexion
+with st.sidebar:
+    if st.session_state.logged_in:
+        st.write(f"Connecté en tant que: {st.session_state.user}")
+        if st.button("Se déconnecter"):
+            _logout()
+
 # En-tête
 col1, col2 = st.columns([2,1])
 with col1:
@@ -436,7 +474,7 @@ with tab5:
     st.write("Ici, vous pouvez afficher des statistiques détaillées sur les emprunts, les retards, et plus encore.")
 # Sidebar
 st.sidebar.title("Navigation")
-st.sidebar.info("Bibliothèque de gestion de la bibliothèque")
+
 
 with st.sidebar:
     st.subheader("Filtres rapides")
